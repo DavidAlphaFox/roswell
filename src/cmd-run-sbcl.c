@@ -1,10 +1,9 @@
-/* -*- tab-width : 2 -*- */
 #include "cmd-run.h"
 
 char** cmd_run_sbcl(int argc,char** argv,struct sub_command* cmd) {
   char* home=configdir();
   char* arch=uname_m();
-  char* os=uname();
+  char* os=uname_s();
   char* impl=(char*)cmd->name;
   char* version=(char*)cmd->short_name;
   /*[binpath for sbcl] --noinform --core param --eval init.lisp
@@ -20,16 +19,21 @@ char** cmd_run_sbcl(int argc,char** argv,struct sub_command* cmd) {
   char* withoutroswell=get_opt("without-roswell",0);
   char* enable_debugger=get_opt("enable-debugger",0);
 
-  char* sbcl_home=cat(home,impl_path,"/lib/sbcl",NULL);
   LVal ret=0;
 
   int issystem=(strcmp("system",version)==0);
   char *bin=issystem?
     strcmp(impl,"sbcl32")==0?truename(which("sbcl32")):truename(which("sbcl")):
     cat(home,impl_path,SLASH,"bin",SLASH,"sbcl",EXE_EXTENTION,NULL);
-  setenv("SBCL_HOME",sbcl_home,1);
 
-  s(arch),s(os),s(sbcl_home);
+  s(arch),s(os);
+
+  if (!issystem) {
+    char* sbcl_home=cat(home,impl_path,SLASH,"lib",SLASH,"sbcl",NULL);
+    setenv("SBCL_HOME",sbcl_home,1);
+    s(sbcl_home);
+  }
+
   ret=conss(bin,ret);
 
   /* runtime options from here */
@@ -54,7 +58,7 @@ char** cmd_run_sbcl(int argc,char** argv,struct sub_command* cmd) {
       char* env = get_opt(PACKAGE_NAME"env",1);
       if(!env) env = "-";
       cond_printf(1,"\nbuildcore:%s\ncause newer script:%s\nenv:%s\n",core,script2,env);
-      setup(image,env);
+      setup(image,env,impl);
     }
     s(ld),s(script2),s(bindir),s(bindir2);
     if(file_exist_p(core)) {
@@ -100,12 +104,10 @@ char** cmd_run_sbcl(int argc,char** argv,struct sub_command* cmd) {
     ret=conss(q("--eval"),ret);
     ret=conss(s_cat(q("(progn #-ros.init(cl:load \""),initlisp,q("\"))"),NULL),ret);
     s(impl_path);
-    if(program || script) {
-      ret=conss(q("--eval"),ret);
-      ret=conss(s_cat(q("(ros:run '("),q(program?program:""),
-                      script?cat("(:script ",script,")(:quit ())",NULL):q(""),
-                      q("))"),NULL),ret);
-    }
+    ret=conss(q("--eval"),ret);
+    ret=conss(s_cat(q("(ros:run '("),q(program?program:""),
+                    script?cat("(:script ",script,")(:quit ())",NULL):q(""),
+                    q("))"),NULL),ret);
   }
   for(;i<argc;++i)
     ret=conss(q(argv[i]),ret);

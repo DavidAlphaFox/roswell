@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #include "opt.h"
 LVal atag_list(char* filename);
 
@@ -6,7 +5,7 @@ LVal filter_sbcl_uri(LVal v) {
   char* str=subseq(firsts(v),-3,0);
   if(strcmp(str,"bz2")==0 ||
      strcmp(str,"msi")==0) {
-    char* u=uname();
+    char* u=uname_s();
     char* m=uname_m();
     char *third,*fourth;
     char *m2;
@@ -24,7 +23,7 @@ LVal filter_sbcl_uri(LVal v) {
       m2=q(third);
       i=3;
     }
-    i=(strcmp(m2,m)==0 && strcmp(firsts(nthcdr(i,ret)),u)==0);
+    i=(strcmp(m2,m)==0 && strncmp(firsts(nthcdr(i,ret)),u,strlen(u))==0);
 
     s(m2),s(str),s(m),s(u),sL(ret);
     return i?toNumber(1):0;
@@ -36,7 +35,7 @@ LVal filter_sbcl_uri(LVal v) {
 char* sbcl_bin(char* file,int nth) {
   char* str;
   LVal ret3,ret2,ret;
-  cond_printf(1,"uname=%s uname-m=%s\n",uname(),uname_m());
+  cond_printf(1,"uname=%s uname-m=%s\n",uname_s(),uname_m());
   ret=atag_list(file);
   ret2=remove_if_not1(filter_sbcl_uri,ret);
   if(ret2==(LVal)NULL) {
@@ -57,7 +56,6 @@ char* lispdir(void) {
 }
 char** argv_orig;
 int verbose=1;
-int module;
 int main(int argc,char** argv) {
   printf("version is %s\n",sbcl_bin(argv[1],1));
 }

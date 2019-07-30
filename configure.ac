@@ -2,7 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.59])
-AC_INIT([roswell],[18.1.10.87],snmsts@gmail.com)
+AC_INIT([roswell],[19.06.10.100],snmsts@gmail.com)
+
+
 
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_FILES([Makefile src/Makefile])
@@ -33,6 +35,27 @@ AM_CONDITIONAL([WITH_WINDOWS], [test "$with_windows" != ""])
 AC_CHECK_TOOL([WINDRES], [windres], [])
 AM_CONDITIONAL([WITH_WIN_ICON], [test "$WINDRES" != ""])
 
+# Git is optional, so fail gracefully, build from tar may not have .git/
+AC_CHECK_PROG(GIT_CHECK,git,yes)
+AS_IF([test "x$GIT_CHECK" = xyes],
+      [AC_SUBST([git_version], `set -o pipefail ; { git describe  | sed -n -e 's/^.*-g//p' ; } 2>/dev/null || echo 'NO-GIT-REVISION'
+`,[git SHA1 for HEAD.])],
+      [AC_SUBST([git_version],[NO-GIT-REVISION])])
+      
+AS_IF([test "x$GIT_CHECK" = xyes],      
+      [AC_SUBST([git_version_long], `set -e | git describe --abbrev=7 --dirty 2>/dev/null || echo 'NO-GIT-REVISION'`, [long version for git source])],
+      [AC_SUBST([git_version_long], [NO-GIT-REVISION])])
+
+
+# Define rosdir and rospatchdir
+# TODO: Make these ./configure line options.
+# See https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
+# Especially 'lispdir' example for emacs.
+roslispdir='${sysconfdir}/roswell'
+AC_SUBST(roslispdir)
+roslisppatchdir='${roslispdir}/patch'
+AC_SUBST(roslisppatchdir)
+
 # Change master uri for sbcl-bin
 AC_ARG_WITH([sbcl_bin_base],
   [AC_HELP_STRING([--with-sbcl-bin-base=URI],[set URI for sbcl-bin [default=https://github.com/roswell/sbcl_bin/releases/download/]])],
@@ -60,7 +83,7 @@ AC_ARG_ENABLE([manual_generation],
 AM_CONDITIONAL(MANUAL_GENERATE,[test x$manual_generate = x"true"])
 
 AC_ARG_ENABLE([manual_install],
-  [AC_HELP_STRING([--enable-manual-installation],[install manual if enabled])],
+  [AC_HELP_STRING([--disable-manual-install],[install manual if enabled])],
   [case "${enableval}" in
     yes) manual_install=true ;;
     no)  manual_install=false ;;

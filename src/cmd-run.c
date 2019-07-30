@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #include "opt.h"
 #include "cmd-run.h"
 DEF_SUBCMD(cmd_script_frontend);
@@ -20,6 +19,9 @@ struct run_impl_t impls_to_run[]={
   {"acl",&cmd_run_acl},
   {"alisp",&cmd_run_acl},
   {"allegro",&cmd_run_acl},
+  {"lispworks",&cmd_run_lispworks},
+  {"mkcl",&cmd_run_mkcl},
+  {"npt",&cmd_run_npt},
 };
 
 struct proc_opt run;
@@ -38,15 +40,19 @@ DEF_SUBCMD(cmd_run) {
   }
 }
 
-int setup(char* target,char* env) {
+int setup(char* target,char* env,char* impl) {
   if(lock_apply("setup",2))
     return 0; /* lock file exists */
   char* v=verbose==1?"-v ":(verbose==2?"-v -v ":"");
   lock_apply("setup",0);
   cond_printf(1,"verbose-option:'%s'\n",v);
   char* version=get_opt(DEFAULT_IMPL".version",0);
-  if(!version)
+  if(!version) {
+    char* path=s_cat(configdir(),q("config"),NULL);
     SETUP_SYSTEM(cat(argv_orig[0]," ",v,"install "DEFAULT_IMPL,NULL),"Installing "DEFAULT_IMPL"...\n");
+    global_opt=load_opts(path),s(path);
+    version=get_opt(DEFAULT_IMPL".version",0);
+  }
   if(strcmp(env,"-")!=0) {
     char *cmd =cat(argv_orig[0]," init env ",env,NULL);
     System(cmd);
@@ -86,9 +92,7 @@ char* determin_impl(char* impl) {
   if(!(impl && version)) {
     s(impl);
     impl=q(DEFAULT_IMPL);
-    setup(PACKAGE,"-");
-    char* path=s_cat(configdir(),q("config"),NULL);
-    global_opt=load_opts(path),s(path);
+    setup(PACKAGE,"-",impl);
     version=get_opt(DEFAULT_IMPL".version",0);
   }
   return s_cat(impl,q("/"),version,NULL);
@@ -150,7 +154,7 @@ void star_set_opt(void) {
   set_opt(&local_opt,"patchdir",append_trail_slash(q(patchdir())));
   if(get_opt("asdf.version",0))
     set_opt(&local_opt,"asdf",get_opt("asdf.version",0));
-  set_opt(&local_opt,"uname",uname());
+  set_opt(&local_opt,"uname",uname_s());
   set_opt(&local_opt,"uname-m",uname_m());
   s(config);
 }

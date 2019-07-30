@@ -18,6 +18,8 @@
     (let ((param `(t :target ,impl :version ,version :version-not-specified nil :argv ,argv)))
       (handler-case
           (loop for call in cmds
+                when (roswell:verbose)
+                  do (format *error-output* "~&:<install ~A~%~S~%:>" call (rest param))
                 do (setq param (funcall call (rest param)))
                 while (first param))
         #+sbcl
@@ -79,8 +81,8 @@ To differentiate it from the system with the same name in quicklisp, the path sh
     (nreverse
      (loop for link in (read-call "plump:get-elements-by-tag-name" elts "link")
            for href = (read-call "plump:get-attribute" link "href")
-           when (eql (aref href 0) #\/)
-           collect (funcall filter href)))))
+           when (funcall filter href)
+           collect it))))
 
 (defun checkout-github (impl version tag)
   "Install a system from github."
@@ -146,7 +148,14 @@ To differentiate it from the system with the same name in quicklisp, the path sh
          (version
           (funcall *checkout-default* impl version tag)
           (read-call "quicklisp-client:register-local-projects")
-          (or (and (install-impl-if-probed version nil argv)
+          (or (let ((project (merge-pathnames (format nil "local-projects/~A/~A/project.lisp" impl version)
+                                              (roswell.util:checkoutdir))))
+                (when (probe-file project)
+                  (ignore-errors
+                    (let ((system (with-open-file (i project)
+                                    (second (assoc "asd" (second (second (first (nth 1 (read i))))) :test #'equal)))))
+                      (install-system-if-probed system)))))
+              (and (install-impl-if-probed version nil argv)
                    (or (setf argv nil) t))
               (install-system-if-probed version)))
          (t (format *error-output* "'~A' is not a valid target for 'install' -- It should be a name of either:

@@ -39,7 +39,7 @@
 
 (defun sbcl-get-version ()
   (format *error-output* "Checking version to install....~%")
-  (github-version (sbcl-git-version-uri) "sbcl" (lambda (href) (subseq href (1+ (position #\- href :from-end t))))))
+  (github-version (sbcl-git-version-uri) "sbcl" (lambda (href) (ignore-errors (subseq href (1+ (position #\- href :from-end t)))))))
 
 (defun sbcl-msys (argv)
   (unless (or (roswell:getenv "MSYSCON")
@@ -73,9 +73,9 @@
              (when default
                (set-opt name (eql default t)))
              (with name)))
-  (cons (if (opt "core-compression")
-            (require-system-package "zlib")
-            t)
+  (cons (if (eql (opt "core-compression") :false)
+            t
+            (require-system-package "zlib"))
         argv))
 
 (defun sbcl-start (argv)
@@ -182,7 +182,7 @@
                        :direction :output :if-exists :append :if-does-not-exist :create)
     (format out "~&--~&~A~%" (date))
     (let* ((src (opt "src"))
-           (compiler (format nil "~A -L ~A without-roswell=t run" *ros-path* (opt "sbcl.compiler")))
+           (compiler (format nil "~A -L ~A without-roswell=t run -- --no-userinit --no-sysinit" *ros-path* (opt "sbcl.compiler")))
            (cmd (list (sh) "-lc" (format nil "cd ~S;~A ~A ~A ~A"
                                          (#+win32 mingw-namestring #-win32 princ-to-string src)
                                          (or #-win32 (sh) "")

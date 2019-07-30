@@ -1,9 +1,8 @@
-/* -*- tab-width : 2 -*- */
 #include "util.h"
 
 #ifndef HAVE_WINDOWS_H
 
-char* uname(void) {
+char* uname_s(void) {
   char *p,*p2;
   p2=remove_char("\r\n",p=system_("uname"));
   s(p);
@@ -43,6 +42,10 @@ char* uname_m(void) {
       s(result2);
       return q("armel");
     }
+  }
+  if(strcmp(p2,"armv5tejl")==0) {
+    s(p2);
+    return q("armel");
   }
   return substitute_char('-','_',p2);
 }
@@ -119,6 +122,7 @@ void setup_uid(int euid_or_uid) {
            seteuid(uid)==0))
         cond_printf(0,"Error setegid/seteuid \n");
     }else {
+      setgroups(0, NULL);
       if(!(setgid(gid)==0 &&
            setuid(uid)==0))
         cond_printf(0,"Error setgid/setuid \n");

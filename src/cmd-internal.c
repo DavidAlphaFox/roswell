@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #include "opt.h"
 #include "cmd-run.h"
 #include "gend.h"
@@ -21,7 +20,7 @@ DEF_SUBCMD(cmd_uname) {
   int argc=length(arg_);
 
   if(argc==1) {
-    printf("%s\n",uname());
+    printf("%s\n",uname_s());
   }else if(argc==2) {
     if(strncmp(firsts(nthcdr(1,arg_)),"-m",2)==0)
       printf("%s\n",uname_m());
@@ -171,11 +170,11 @@ char* lispdir(void) {
   /* $(bindir)/../lisp/ */
   LISPDIR_CANDIDATE(cat(ros_bin,"lisp",SLASH,NULL));
   s(ros_bin);
-  result=append_trail_slash(q(LISP_PATH));
+  result=append_trail_slash(LISP_PATH);
   return q(result);
 }
 char* patchdir(void) {
-  return append_trail_slash(q(PATCH_PATH));
+  return append_trail_slash(PATCH_PATH);
 }
 
 DEF_SUBCMD(opt_version) {

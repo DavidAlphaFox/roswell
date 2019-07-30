@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #ifndef __UTIL_H__
 #define __UTIL_H__
 #ifdef HAVE_CONFIG_H
@@ -16,6 +15,7 @@
 #ifndef HAVE_WINDOWS_H
 #include <pwd.h>
 #include <unistd.h>
+#include <grp.h>
 #include <signal.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -157,7 +157,7 @@ char* backslash_decode(char* str);
 char** parse_cmdline(char* cmdline,int *argc);
 int free_cmdline(char** argv);
 char* determin_impl(char* impl);
-char* uname(void);
+char* uname_s(void);
 char* uname_m(void);
 char* which(char* cmd);
 LVal directory(char* path);

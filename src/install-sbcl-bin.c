@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #include "cmd-install.h"
 #include "opt.h"
 
@@ -79,6 +78,14 @@ int sbcl_bin_download(struct install_options* param) {
       int len = strlen(param->version)-1;
       if('1'<= param->version[len] && param->version[len] <= '9') {
         param->version[len]--;
+        s(param->expand_path),s(impls_sbcl_bin.uri);
+      }else if('2' <= param->version[len-1] && param->version[len-1] <= '9') {
+        param->version[len-1]--;
+        param->version[len] = '9';
+        s(param->expand_path),s(impls_sbcl_bin.uri);
+      }else if('1' == param->version[len-1]) {
+        param->version[len-1] = '9';
+        param->version[len] = '\0';
         s(param->expand_path),s(impls_sbcl_bin.uri);
       }else{
         s(arch),s(home);

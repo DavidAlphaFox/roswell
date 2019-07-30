@@ -1,4 +1,3 @@
-/* -*- tab-width : 2 -*- */
 #include "util.h"
 
 #ifdef HAVE_WINDOWS_H
@@ -14,7 +13,7 @@ int unsetenv(const char* name) {
   s(s_);
 }
 
-char* uname(void) {
+char* uname_s(void) {
   return q("windows");
 }
 

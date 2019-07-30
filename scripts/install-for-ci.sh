@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+ROSWELL_RELEASE_VERSION=19.06.10.100
 ROSWELL_TARBALL_PATH=$HOME/roswell.tar.gz
 ROSWELL_DIR=$HOME/.roswell
 ROSWELL_REPO=${ROSWELL_REPO:-https://github.com/roswell/roswell}
@@ -109,23 +110,54 @@ if which sudo >/dev/null; then
     SUDO=sudo
 fi
 
+install_roswell_bin () {
+    if uname -s | grep -e MSYS_NT >/dev/null; then
+        if [ $ROSWELL_BRANCH = release ]; then
+            fetch "https://github.com/roswell/roswell/releases/download/v$ROSWELL_RELEASE_VERSION/roswell_${ROSWELL_RELEASE_VERSION}_amd64.zip" /tmp/roswell.zip
+        else
+            fetch "https://ci.appveyor.com/api/projects/snmsts/roswell-en89n/artifacts/Roswell-x86_64.zip?branch=master&job=Environment%3A%20MSYS2_ARCH%3Dx86_64,%20MSYS2_BITS%3D64,%20MSYSTEM%3DMINGW64,%20METHOD%3Dcross" /tmp/roswell.zip
+        fi
+        unzip /tmp/roswell.zip -d /tmp/ >/dev/null
+        mkdir -p $ROSWELL_INSTALL_DIR/bin
+        cp /tmp/roswell/ros.exe $ROSWELL_INSTALL_DIR/bin
+        cp -r /tmp/roswell/lisp $ROSWELL_INSTALL_DIR/bin/lisp
+    elif uname -s |grep Linux >/dev/null && uname -m |grep x86_64 >/dev/null && which dpkg >/dev/null; then
+        if ! [ -w "$ROSWELL_INSTALL_DIR" ]; then
+            if [ $ROSWELL_BRANCH = release ]; then
+                fetch "https://github.com/roswell/roswell/releases/download/v$ROSWELL_RELEASE_VERSION/roswell_$ROSWELL_RELEASE_VERSION-1_amd64.deb" /tmp/roswell.deb
+            fi
+            if [ -f /tmp/roswell.deb ]; then
+                $SUDO dpkg -i /tmp/roswell.deb
+            fi
+        fi
+    elif [ `uname` = "Darwin" ] && [ $ROSWELL_BRANCH = release ]; then
+        apt_unless_installed roswell
+    fi
+}
+
+install_roswell_src () {
+    if ! which ros >/dev/null; then
+        fetch "$ROSWELL_REPO/archive/$ROSWELL_BRANCH.tar.gz" "$ROSWELL_TARBALL_PATH"
+        extract -z "$ROSWELL_TARBALL_PATH" "$ROSWELL_DIR"
+        cd $ROSWELL_DIR
+        sh bootstrap
+        mkdir -p ~/.roswell
+        echo "sbcl-bin-version-uri	0	$ROSWELL_PLATFORMHTML_BASE" >> ~/.roswell/config;
+        echo "sbcl-bin-uri	0	$ROSWELL_SBCL_BIN_URI" >> ~/.roswell/config;
+        ./configure --prefix=$ROSWELL_INSTALL_DIR
+        make
+        if [ -w "$ROSWELL_INSTALL_DIR" ]; then
+            make install
+        else
+            $SUDO make install
+        fi
+    fi
+}
+
 if ! which ros >/dev/null; then
     echo "Installing Roswell..."
-
-    fetch "$ROSWELL_REPO/archive/$ROSWELL_BRANCH.tar.gz" "$ROSWELL_TARBALL_PATH"
-    extract -z "$ROSWELL_TARBALL_PATH" "$ROSWELL_DIR"
-    cd $ROSWELL_DIR
-    sh bootstrap
-    mkdir -p ~/.roswell
-    echo "sbcl-bin-version-uri	0	$ROSWELL_PLATFORMHTML_BASE" >> ~/.roswell/config;
-    echo "sbcl-bin-uri	0	$ROSWELL_SBCL_BIN_URI" >> ~/.roswell/config;
-    ./configure --prefix=$ROSWELL_INSTALL_DIR
-    make
-    if [ -w "$ROSWELL_INSTALL_DIR" ]; then
-        make install
-    else
-        $SUDO make install
-    fi
+    install_roswell_bin
+    install_roswell_src
     echo "Roswell has been installed."
 else
     echo "Detected Roswell."
@@ -204,6 +236,6 @@ mkdir -p "$LOCAL_LISP_TREE"
 if [ "$TRAVIS" ]; then
     echo "(:tree \"$TRAVIS_BUILD_DIR/\")" > "$ASDF_SR_CONF_FILE"
 elif [ "$CIRCLECI" ]; then
-    echo "(:tree \"$HOME/$CIRCLE_PROJECT_REPONAME/\")" > "$ASDF_SR_CONF_FILE"
+    echo "(:tree \"$CIRCLE_WORKING_DIRECTORY/\")" > "$ASDF_SR_CONF_FILE"
 fi
 echo "(:tree \"$LOCAL_LISP_TREE/\")" >> "$ASDF_SR_CONF_FILE"
